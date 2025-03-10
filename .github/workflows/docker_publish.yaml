@@ -22,11 +22,22 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Create remote builder certificates files
+        run: |
+          echo "${{ secrets.BUILDKIT_CA_PEM }}" > client-ca.pem
+          echo "${{ secrets.BUILDKIT_CERT_PEM }}" > client-cert.pem
+          echo "${{ secrets.BUILDKIT_KEY_PEM }}" > client-key.pem
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          version: latest
-          driver: docker-container
+          driver: remote
+          endpoint: "tcp://buildkit.iosis.tech:30500"
+          driver-opts: |
+            cacert=${{ github.workspace }}/client-ca.pem
+            cert=${{ github.workspace }}/client-cert.pem
+            key=${{ github.workspace }}/client-key.pem
+          cleanup: true
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
